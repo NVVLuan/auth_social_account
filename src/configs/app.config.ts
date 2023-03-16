@@ -13,13 +13,13 @@ export const App = async (): Promise<Express> => {
     app.use(cors());
     app.use(express.json());
 
-    app.use(bodyParser.json());
-    app.use(bodyParser.urlencoded({ extended: true }));
-
     sessionConfig(app);
 
     app.use(passport.initialize());
     app.use(passport.session());
+
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: true }));
 
     configViewEngine(app);
     configRouter(app);

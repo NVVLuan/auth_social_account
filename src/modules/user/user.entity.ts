@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, VersionColumn } from 'typeorm';
 
 interface UserInterface {
     id: string;
@@ -21,6 +21,12 @@ export class User implements UserInterface {
     @Column()
     password: string;
 
+    @Column({ default: false })
+    active: boolean;
+
     @Column()
     email: string;
+
+    @VersionColumn()
+    version: Date;
 }

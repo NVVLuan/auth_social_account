@@ -1,4 +1,4 @@
-import { ggInit } from './google.config';
+import { ggInit } from '../auth_social/google/google.config';
 import passport = require('passport');
 
 ggInit.connect(passport);

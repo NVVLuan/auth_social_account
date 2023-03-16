@@ -1,12 +1,17 @@
+import { AppDataSource } from './../../configs/database.config';
 import { GoogleDTO } from './google.dto';
 import GoogleStrategy, { Profile, VerifyCallback } from 'passport-google-oauth20';
-
-const googleStrategy = GoogleStrategy.Strategy;
 import passport, { PassportStatic } from 'passport';
 import { GoogleResponse } from './googleResponse.dto';
 import { Request } from 'express';
+import { User } from '../../modules/user/user.entity';
+import password_codes from 'voucher-code-generator';
+import { nodeMailer } from '../../configs/nodemailer.config';
 
-const connect = (passport: PassportStatic) => {
+const userRepo = AppDataSource.getRepository(User);
+const googleStrategy = GoogleStrategy.Strategy;
+
+const connect = (passport: PassportStatic): passport.PassportStatic => {
     passport.serializeUser(function (user: Express.User, done) {
         done(null, user);
     });
@@ -23,32 +28,68 @@ const connect = (passport: PassportStatic) => {
                 callbackURL: process.env.URL_CALL_BACK,
                 passReqToCallback: true,
             },
-            function (
+            async function (
                 req: Request,
                 accessToken: string,
                 refreshToken: string,
                 profile: Profile,
                 done: VerifyCallback
-            ): void {
-                const userData: GoogleResponse = {
-                    email: profile.emails[0].value,
-                    name: profile.displayName,
-                    photo: profile._json.picture,
-                    locale: profile._json.locale,
-                    token: {
-                        accessToken,
-                        refreshToken,
-                    },
-                };
+            ): Promise<void> {
+                try {
+                    const userData: GoogleResponse = {
+                        email: profile.emails[0].value,
+                        name: profile.displayName,
+                        photo: profile._json.picture,
+                        locale: profile._json.locale,
+                        token: {
+                            accessToken,
+                            refreshToken,
+                        },
+                    };
 
-                done(null, userData);
+                    //validate email into database
+                    const userFind = await userRepo.findOne({
+                        where: { email: userData.email },
+                    });
+                    console.log(userFind);
+                    if (!userFind) {
+                        const password_code = password_codes.generate({
+                            pattern: '########',
+                        })[0];
+
+                        const userNew = await userRepo.save({
+                            userName: userData.name,
+                            email: userData.email,
+                            password: password_code,
+                        });
+                        try {
+                            await nodeMailer({
+                                from: process.env.ADMIN_EMAIL,
+                                to: userNew.email as string,
+                                subject: process.env.SUBJECT_EMAIL,
+                                title: process.env.TITLE_EMAIL,
+                                content: `${password_code}`,
+                            });
+                        } catch (err) {
+                            await userRepo.delete({ id: userNew.id });
+
+                            return done(null, false);
+                        }
+                    }
+
+                    return done(null, userData);
+                } catch (err) {
+                    return done(null, false);
+                }
             }
         )
     );
+
+    return passport;
 };
 
 // Submit request for authentication by Google.
-const authenticate = (config: Partial<GoogleDTO>) => {
+const authenticate = (config: Partial<GoogleDTO>): any => {
     return passport.authenticate(config.name, {
         scope: config.scopes,
         failureFlash: config.failureFlash,
@@ -58,7 +99,7 @@ const authenticate = (config: Partial<GoogleDTO>) => {
 };
 
 // Callback after authentication request is executed.
-const authenticateCallback = (config: Partial<GoogleDTO>) => {
+const authenticateCallback = (config: Partial<GoogleDTO>): any => {
     return passport.authenticate(config.name, {
         successRedirect: config.successRedirect,
         failureRedirect: config.failureRedirect,

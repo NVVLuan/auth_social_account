@@ -1,6 +1,6 @@
 import express from 'express';
-import { ggInit } from '../../auth_social/google/google.init';
 import { GoogleItem } from '../../auth_social/google/google.dto';
+import { ggInit } from '../../configs/social.config';
 import { UserController } from './user.controller';
 
 const googleItem = new GoogleItem();
@@ -9,26 +9,27 @@ const UserRouting = express.Router();
 
 const userController = new UserController();
 
-// UserRouting.post(`/signup`, userController.login);
-UserRouting.get(`/login`, userController.login);
-UserRouting.get(`/home`, userController.loginGoogle);
+UserRouting.post(`/login/`, userController.login);
+UserRouting.get(`/login`, userController.loginPage);
+UserRouting.get(`/home`, userController.homePage);
+UserRouting.get(`/signup`, userController.signupPage);
 
+//login with google
 UserRouting.get(
     `/auth/google`,
     ggInit.authenticate({
         name: googleItem.name,
         scopes: googleItem.scopes,
+        session: googleItem.session,
     })
 );
 UserRouting.get(
     `/auth/google/callback`,
     ggInit.authenticateCallback({
         name: googleItem.name,
-        failureRedirect: googleItem.failureRedirect,
         successRedirect: googleItem.successRedirect,
-    }),
-    userController.loginGoogle
+        failureRedirect: googleItem.failureRedirect,
+    })
 );
-UserRouting.get(`/signup`, userController.signup);
 
 export { UserRouting };
