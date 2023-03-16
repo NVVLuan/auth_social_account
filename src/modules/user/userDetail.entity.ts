@@ -1,9 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, VersionColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 interface UserInterface {
     id: string;
 
-    userName: string;
+    firstName: string;
+
+    lastName: string;
 
     password: string;
 
@@ -11,12 +13,15 @@ interface UserInterface {
 }
 
 @Entity()
-export class User implements UserInterface {
+export class UserDetail implements UserInterface {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
     @Column()
-    userName: string;
+    firstName: string;
+
+    @Column()
+    lastName: string;
 
     @Column()
     password: string;
@@ -26,7 +31,4 @@ export class User implements UserInterface {
 
     @Column()
     email: string;
-
-    @VersionColumn()
-    version: Date;
 }
