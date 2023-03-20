@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, JoinTable, ManyToOne } from 'typeorm';
+import { UserAccount } from '../user/userAccount.entity';
 
 interface SocialInterface {
     id: string;
@@ -13,4 +14,8 @@ export class Social implements SocialInterface {
 
     @Column()
     socialName: string;
+
+    @ManyToOne(() => UserAccount)
+    @JoinTable()
+    userAccount: UserAccount;
 }

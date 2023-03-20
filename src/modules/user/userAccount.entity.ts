@@ -1,19 +1,15 @@
-import { UserDetail } from './userDetail.entity';
-import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    OneToOne,
-    JoinColumn,
-    ManyToMany,
-    JoinTable,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Social } from '../auth_social/social.entity';
+import { UserDetail } from './userDetail.entity';
 
 interface UserInterface {
     id: string;
 
-    userNameAccount: string;
+    userName: string;
+
+    password: string;
+
+    email: string;
 }
 
 @Entity()
@@ -22,13 +18,21 @@ export class UserAccount implements UserInterface {
     id: string;
 
     @Column()
-    userNameAccount: string;
+    userName: string;
+
+    @Column()
+    password: string;
+
+    @Column({ default: false })
+    active: boolean;
+
+    @Column()
+    email: string;
 
     @OneToOne(() => UserDetail)
     @JoinColumn()
-    userDetail: UserDetail;
+    userDetail: Promise<UserDetail>;
 
-    @ManyToMany(() => Social)
-    @JoinTable()
+    @OneToMany(() => Social, social => social.userAccount)
     socials: Social[];
 }

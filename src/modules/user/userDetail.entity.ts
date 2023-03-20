@@ -6,10 +6,6 @@ interface UserInterface {
     firstName: string;
 
     lastName: string;
-
-    password: string;
-
-    email: string;
 }
 
 @Entity()
@@ -23,12 +19,6 @@ export class UserDetail implements UserInterface {
     @Column()
     lastName: string;
 
-    @Column()
-    password: string;
-
-    @Column({ default: false })
-    active: boolean;
-
-    @Column()
-    email: string;
+    @Column({ nullable: true })
+    photo: string;
 }

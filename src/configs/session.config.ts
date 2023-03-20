@@ -8,9 +8,9 @@ export const sessionConfig = (app: typeof server) => {
     app.use(
         session({
             secret: 'keyboard cat',
-            resave: false,
             saveUninitialized: true,
-            cookie: { secure: true },
+            cookie: { secure: false, maxAge: 1000 * 60 * 5 },
+            store: new session.MemoryStore(),
         })
     );
 };

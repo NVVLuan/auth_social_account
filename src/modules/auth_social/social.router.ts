@@ -1,8 +1,8 @@
-import { Github } from './social.config';
 import express from 'express';
 import { GoogleItem } from '../auth_social/google/google.dto';
-import { Google } from './social.config';
+import { Github } from './github/github.config';
 import { GithubItem } from './github/github.dto';
+import { Google } from './google/google.config';
 
 const googleItem = new GoogleItem();
 const google = new Google();
@@ -11,7 +11,7 @@ const github = new Github();
 
 const SocialRouting = express.Router();
 
-//login with google
+// login with google
 SocialRouting.get(
     `/google`,
     google.authenticate({
@@ -29,6 +29,7 @@ SocialRouting.get(
     })
 );
 
+// login with github
 SocialRouting.get(
     `/github`,
     github.authenticate({

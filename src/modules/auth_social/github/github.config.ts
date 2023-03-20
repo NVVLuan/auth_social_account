@@ -1,79 +1,61 @@
 import { Request } from 'express';
-import passport, { PassportStatic } from 'passport';
 import GitHubStrategy from 'passport-github2';
-import { GithubResponse } from './githubResponse.dto';
 import { AppDataSource } from '../../../configs/database.config';
-import { UserAccount } from '../../user/userAccount.entity';
+import { PassportAuth } from '../social.config';
+import { SocialResponseDTO } from '../social.dto';
 import { Social } from '../social.entity';
 
 const githubStrategy = GitHubStrategy.Strategy;
 
-const userAccountRepo = AppDataSource.getRepository(UserAccount);
+const callBackOauth = async (userData: SocialResponseDTO) => {
+    const socialRepo = AppDataSource.getRepository(Social);
 
-const connect = (passport: PassportStatic): passport.PassportStatic => {
-    passport.serializeUser(function (user: Express.User, done) {
-        done(null, user);
+    const socialFind = await socialRepo.findOne({
+        where: { id: userData.id },
     });
 
-    passport.deserializeUser(function (obj: unknown, done) {
-        done(null, obj);
-    });
-
-    passport.use(
-        new githubStrategy(
-            {
-                clientID: process.env.GITHUB_CLIENT_ID,
-                clientSecret: process.env.GITHUB_CLIENT_SECRET,
-                callbackURL: process.env.URL_CALL_BACK_GITHUB,
-                passReqToCallback: true,
-            },
-            async function (
-                request: Request,
-                accessToken: string,
-                refreshToken: string,
-                profile: GitHubStrategy.Profile,
-                done: (error: any, user?: any) => void
-            ): Promise<void> {
-                try {
-                    console.log(profile);
-                    const userData: GithubResponse = {
-                        url: profile.profileUrl,
-                        name: profile.username,
-                        photo: profile.photos,
-                        token: {
-                            accessToken,
-                            refreshToken,
-                        },
-                    };
-                    console.log(userData);
-                    const userFind = await userAccountRepo.findOne({
-                        where: { userNameAccount: userData.name },
-                    });
-
-                    if (!userFind) {
-                        await AppDataSource.manager.transaction(
-                            'SERIALIZABLE',
-                            async transactionalEntityManager => {
-                                await transactionalEntityManager
-                                    .getRepository(Social)
-                                    .save({ socialName: userData.url });
-
-                                await transactionalEntityManager
-                                    .getRepository(UserAccount)
-                                    .save({ userNameAccount: userData.name });
-                            }
-                        );
-                    }
-                    return done(null, userData);
-                } catch (err) {
-                    console.log(err);
-                    return done(null, false);
-                }
-            }
-        )
-    );
-
-    return passport;
+    return socialFind
+        ? socialFind
+        : await socialRepo.save({ id: userData.id, socialName: userData.socialName });
 };
 
-export const gitInit = { connect };
+export class Github extends PassportAuth {
+    constructor() {
+        super();
+        this.deserializeUser();
+        this.serializeUser();
+        this.connect(
+            new githubStrategy(
+                {
+                    clientID: process.env.GITHUB_CLIENT_ID,
+                    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+                    callbackURL: process.env.URL_CALL_BACK_GITHUB,
+                    passReqToCallback: true,
+                },
+                async function (
+                    request: Request,
+                    accessToken: string,
+                    refreshToken: string,
+                    profile: GitHubStrategy.Profile,
+                    done: (error: any, user?: any) => void
+                ): Promise<void> {
+                    try {
+                        const userData: SocialResponseDTO = {
+                            id: profile.id,
+                            socialName: profile.profileUrl,
+                            name: profile.username,
+                            photo: profile.photos[0].value,
+                            accessToken,
+                        };
+
+                        callBackOauth(userData);
+                        return done(null, userData);
+                    } catch (err) {
+                        console.log(err);
+                        return done(null, false);
+                    }
+                }
+            )
+        );
+    }
+}
